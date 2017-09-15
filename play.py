@@ -29,10 +29,10 @@ pydeimos.utils.write_fits(stamp, "stamp.fits")
 
 
 # Create a galsim image out of this stamp
-#gs_stamp = galsim.image.Image(stamp.transpose())
-gs_stamp = galsim.image.Image( stamp.transpose().copy() )
+gs_stamp = galsim.image.Image(stamp.transpose())
+#gs_stamp = galsim.image.Image( stamp.transpose().copy() )
 
-
+print( 'FindAdaptiveMom')
 res = galsim.hsm.FindAdaptiveMom(gs_stamp)
 
 output_dict = {}
@@ -44,5 +44,9 @@ output_dict["g2"] = res.observed_shape.g2
 output_dict["sigma"] = res.moments_sigma
 output_dict["rho4"] = res.moments_rho4
 
-
 print(output_dict)
+
+print( dir( res ))
+print( dir( res.observed_shape) )
+
+print( 'Done.' )

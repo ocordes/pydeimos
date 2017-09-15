@@ -64,14 +64,34 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 ENDIF()
 
 # add libraries
-find_package(CCFITS REQUIRED)
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs REQUIRED )
+find_package( Galsim REQUIRED )
 
-find_package(PythonLibs REQUIRED)
+#find_package( Boost )
+#if ( Boost_FOUND )
+#  include_directories( "${Boost_INCLUDE_DIRS}" )
+#  set( Boost_USE_STATIC_LIBS OFF )
+#  set( Boost_USE_MULTITHREADED  ON )
+#  set( Boost_USE_STATIC_RUNTIME OFF )
+#  find_package( Boost ${BOOST_VERSION} COMPONENTS python )
+#ELSEIF(NOT Boost_FOUND)
+#  MESSAGE(FATAL_ERROR "Unable to find Boost.")
+#ENDIF()
+
+find_package(Boost COMPONENTS python REQUIRED)
+
+set(CMAKE_MACOSX_RPATH 1)
 
 # compile all sources into a static libarctic.a file
 add_library( hsm SHARED ${sources} )
 #set_target_properties( hsm PROPERTIES OUTPUT_NAME arctic )
 
+
+# find numpy HEADERS
+execute_process(COMMAND python -c "import numpy as np; print( np.get_include() ),"  OUTPUT_VARIABLE _NUMPY_INCLUDE_DIRS)
+string(REPLACE "\n" "" NUMPY_INCLUDE_DIRS ${_NUMPY_INCLUDE_DIRS})
+message( STATUS "Found numpy headers in: ${NUMPY_INCLUDE_DIRS}")
 
 if(LINUX)
    #message(STATUS ">>> Linux")
@@ -84,8 +104,10 @@ endif()
 # this lets me include files relative to the root src dir with a <> pair
 target_include_directories( hsm PUBLIC src )
 target_include_directories( hsm PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_include_directories( hsm PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_link_libraries( hsm ${PYTHON_LIBRARIES})
-target_link_libraries( hsm  ${CCFITS_LIBRARIES})
+target_link_libraries( hsm ${GALSIM_LIBRARIES})
+target_link_libraries( hsm ${Boost_LIBRARIES})
 
 
 # os configuration file

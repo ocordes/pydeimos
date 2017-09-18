@@ -43,10 +43,10 @@ output_dict["g1"] = res.observed_shape.g1
 output_dict["g2"] = res.observed_shape.g2
 output_dict["sigma"] = res.moments_sigma
 output_dict["rho4"] = res.moments_rho4
+output_dict["m_xx"] = res.moments_m_xx
+output_dict["m_yy"] = res.moments_m_yy
+output_dict["m_xy"] = res.moments_m_xy
 
 print(output_dict)
-
-print( dir( res ))
-print( dir( res.observed_shape) )
 
 print( 'Done.' )

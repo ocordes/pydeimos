@@ -3,6 +3,7 @@
 
 """
 
-__all__ = [ "utils" ]
+__all__ = [ "utils", "simplemoments" ]
 
 import utils
+import simplemoments

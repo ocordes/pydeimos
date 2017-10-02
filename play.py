@@ -24,6 +24,7 @@ assert Y[0,79] == 79.5
 
 # Draw a Gaussian
 stamp = gaussian(100.0, 65.0, 40.0, 5.0, 10.0)(X, Y) + np.random.randn(*X.shape)
+#stamp = gaussian(100.0, 65.0, 40.0, 5.0, 10.0)(X, Y)
 # Save it to Fits
 pydeimos.utils.write_fits(stamp, "stamp.fits")
 
@@ -31,7 +32,7 @@ pydeimos.utils.write_fits(stamp, "stamp.fits")
 
 # Create a galsim image out of this stamp
 gs_stamp = galsim.image.Image(stamp.transpose())
-#gs_stamp = galsim.image.Image( stamp.transpose().copy() )
+
 
 print( 'FindAdaptiveMom')
 res = galsim.hsm.FindAdaptiveMom(gs_stamp)

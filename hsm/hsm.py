@@ -1,7 +1,7 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-09-28
+# changed by: Oliver Cordes 2017-10-02
 
 from moments import Moments
 
@@ -12,45 +12,145 @@ class HSM:
     def __init__( self,
                   max_moment_nsig2=25.0,
                   convergence_treshold=1e-6,
-                  guess_sig=5. ):
+                  guess_sig=5.,
+                  bound_correct_wt=0.25,
+                  max_amoment=8000.,
+                  max_ashift=15.,
+                  max_mom2_iter=400):
+                  
         self.max_moment_nsig2     = max_moment_nsig2
         self.convergence_treshold = convergence_treshold
         self.guess_sig            = guess_sig
+        self.bound_correct_wt     = bound_correct_wt
+        self.max_amoment          = max_amoment
+        self.max_ashift           = max_ashift
+        self.max_mom2_iter        = max_mom2_iter
 
 
     def FindAdaptiveMom( self, object_image ):
 
-        c_x  = object_image.shape[0] / 2.
-        c_y  = object_image.shape[1] / 2.
+        c_x  = ( object_image.shape[1] / 2. ) + 0.5
+        c_y  = ( object_image.shape[0] / 2. ) + 0.5
         m_xx = self.guess_sig * self.guess_sig
         m_yy = m_xx
         m_xy = 0.
-        self.find_ellipmom_2( object_image,
-                              c_x, c_y,
-                              m_xx, m_xy, m_yy )
-        return Moments()
+        Amp, x0, y0, Mxx, Mxy, Myy, rho4 = self.find_ellipmom_2( object_image,
+                                                                 c_x, c_y,
+                                                                 m_xx, m_xy, m_yy )
+        return Moments( Amp, x0, y0, Mxx, Mxy, Myy, rho4 )
 
 
     def find_ellipmom_2( self,
                          object_image,
-                         centroid_x,
-                         centroid_y,
-                         m_xx,
-                         m_xy,
-                         m_yy
+                         x0,
+                         y0,
+                         Mxx,
+                         Mxy,
+                         Myy
                          ):
+
+        x00 = x0
+        y00 = y0
+        num_iter = 0
 
         convergence_factor = 1.0
 
-
+        # Set Amp = -1000 as initial value just in case the while() block below is never triggered;
+        # in this case we have at least *something* defined to divide by, and for which the output
+        # will fairly clearly be junk.
         Amp = -1000
 
         while( convergence_factor > self.convergence_treshold ):
-            A, Bx, By, Cxx, Cxy, Cyy, rho4 = self.find_ellipmom_1( object_image,
-                                                             centroid_x, centroid_y,
-                                                             m_xx, m_xy, m_yy )
-            break
-            pass
+            # Get moments
+            Amp, Bx, By, Cxx, Cxy, Cyy, rho4 = self.find_ellipmom_1( object_image,
+                                                             x0, y0,
+                                                             Mxx, Mxy, Myy )
+
+            # Compute configuration of the weight function
+            two_psi = atan2( 2* Mxy, Mxx-Myy )
+            semi_a2 = 0.5 * ((Mxx+Myy) + (Mxx-Myy)*cos(two_psi)) + Mxy*sin(two_psi)
+            semi_b2 = Mxx + Myy - semi_a2
+
+            if (semi_b2 <= 0):
+               raise ValueError( 'Error: non positive-definite weight in find_ellipmom_2.' )
+
+            shiftscale = sqrt(semi_b2)
+            if (num_iter == 0):
+               shiftscale0 = shiftscale
+
+            # Now compute changes to x0, etc.
+            dx = 2. * Bx / (Amp * shiftscale)
+            dy = 2. * By / (Amp * shiftscale)
+            dxx = 4. * (Cxx/Amp - 0.5*Mxx) / semi_b2
+            dxy = 4. * (Cxy/Amp - 0.5*Mxy) / semi_b2
+            dyy = 4. * (Cyy/Amp - 0.5*Myy) / semi_b2
+
+            #print( 'dx  : %f' % dx )
+            #print( 'dy  : %f' % dy )
+            #print( 'dxx : %f' % dxx )
+            #print( 'dxy : %f' % dxy )
+            #print( 'dyy : %f' % dyy )
+
+            if ( dx  >  self.bound_correct_wt ):
+                 dx  =  self.bound_correct_wt
+            if ( dx  < -self.bound_correct_wt ):
+                 dx  = -self.bound_correct_wt
+            if ( dy  >  self.bound_correct_wt ):
+                 dy  =  self.bound_correct_wt
+            if ( dy  < -self.bound_correct_wt ):
+                 dy  = -self.bound_correct_wt
+            if ( dxx >  self.bound_correct_wt ):
+                 dxx =  self.bound_correct_wt
+            if ( dxx < -self.bound_correct_wt ):
+                 dxx = -self.bound_correct_wt
+            if ( dxy >  self.bound_correct_wt ):
+                 dxy =  self.bound_correct_wt
+            if ( dxy < -self.bound_correct_wt ):
+                 dxy = -self.bound_correct_wt
+            if ( dyy >  self.bound_correct_wt ):
+                 dyy =  self.bound_correct_wt
+            if ( dyy < -self.bound_correct_wt ):
+                 dyy = -self.bound_correct_wt
+
+            # Convergence tests
+            if ( abs( dx ) > abs( dy ) ):
+                convergence_factor = abs( dx )
+            else:
+                convergence_factor = abs( dy )
+            convergence_factor *= convergence_factor
+            if ( abs( dxx ) > convergence_factor ):
+                convergence_factor = abs( dxx )
+            if ( abs( dxy ) > convergence_factor ):
+                convergence_factor = abs( dxy )
+            if ( abs( dyy ) > convergence_factor ):
+                convergence_factor = abs( dyy )
+            convergence_factor = sqrt( convergence_factor )
+            if ( shiftscale<shiftscale0 ):
+                convergence_factor *= shiftscale0/shiftscale
+
+            # Now update moments
+            x0 += dx * shiftscale
+            y0 += dy * shiftscale
+            Mxx += dxx * semi_b2
+            Mxy += dxy * semi_b2
+            Myy += dyy * semi_b2
+
+            # If the moments have gotten too large, or the centroid is out of range,
+            #report a failure
+            if ( ( abs( Mxx ) > self.max_amoment ) or
+                 ( abs( Mxy ) > self.max_amoment ) or
+                 ( abs( Myy ) > self.max_amoment ) or
+                 ( abs( x0 - x00 ) > self.max_ashift ) or
+                 ( abs( y0 - y00 ) > self.max_ashift ) ):
+                raise ValueError( 'Error: adaptive moment failed' )
+
+            num_iter += 1
+            if ( num_iter > self.max_mom2_iter ):
+                raise ValueError( 'Error: too many iterations in adaptive moments' )
+
+        # Re-normalize rho4
+        rho4 /= Amp
+        return Amp, x0, y0, Mxx, Mxy, Myy, rho4
 
 
     def find_ellipmom_1( self,
@@ -59,20 +159,20 @@ class HSM:
                          Mxx, Mxy, Myy ):
 
 
-        xmin = 0
-        ymin = 0
-        xmax = object_image.shape[0]-1
-        ymax = object_image.shape[1]-1
-        print( 'Entering find_ellipmom_1 with:')
-        print( ' x0  : %f' % x0 )
-        print( ' y0  : %f' % y0 )
-        print( ' Mxx : %f' % Mxx )
-        print( ' Mxy : %f' % Mxy )
-        print( ' Myy : %f' % Myy )
-        print( ' e1  : %f' % ((Mxx-Myy)/(Mxx+Myy)) )
-        print( ' e2  : %f' % (2*(Mxy/(Mxx+Myy))) )
-        print( ' xmax: %i' % xmax )
-        print( ' ymax: %i' % ymax )
+        xmin = 1
+        ymin = 1
+        xmax = object_image.shape[1]
+        ymax = object_image.shape[0]
+        #print( 'Entering find_ellipmom_1 with:')
+        #print( ' x0  : %f' % x0 )
+        #print( ' y0  : %f' % y0 )
+        #print( ' Mxx : %f' % Mxx )
+        #print( ' Mxy : %f' % Mxy )
+        #print( ' Myy : %f' % Myy )
+        #print( ' e1  : %f' % ((Mxx-Myy)/(Mxx+Myy)) )
+        #print( ' e2  : %f' % (2*(Mxy/(Mxx+Myy))) )
+        #print( ' xmax: %i' % xmax )
+        #print( ' ymax: %i' % ymax )
 
         # Compute M^{-1} for use in computing weights
         detM = Mxx * Myy - Mxy*Mxy
@@ -113,8 +213,8 @@ class HSM:
         iy2 = int( floor( y2 ) )
         if (iy1 < ymin): iy1 = ymin;
         if (iy2 > ymax): iy2 = ymax;
-        print( 'y1,y2  : %f,%f' % (y1,y2) )
-        print( 'iy1,iy2: %i,%i' % (iy1,iy2) )
+        #print( 'y1,y2  : %f,%f' % (y1,y2) )
+        #print( 'iy1,iy2: %i,%i' % (iy1,iy2) )
 
         if ( iy1 > iy2 ):
             raise ValueError( 'bound don\'t make sense')
@@ -123,6 +223,9 @@ class HSM:
             y_y0 = y-y0
             TwoMinv_xy__y_y0 = TwoMinv_xy * y_y0
             Minv_yy__y_y0__y_y0 = Minv_yy * y_y0 * y_y0
+
+            #print( 'TwoMinv_xy__y_y0   : %f' % TwoMinv_xy__y_y0 )
+            #print( 'Minv_vy__y_y0__y_y0: %f' % Minv_yy__y_y0__y_y0 )
 
             # Now for a particular value of y, we want to find the min/max x that satisfy
             # rho2 < max_moment_nsig2.
@@ -150,14 +253,15 @@ class HSM:
             x_x0 = ix1 - x0
             mxxptr = ix1 - xmin
 
+
             for x in range( ix1, ix2+1 ):
                 # Compute displacement from weight centroid, then
                 # get elliptical radius and weight.
                 #
+                mxxptr += 1
                 rho2 = Minv_yy__y_y0__y_y0 + TwoMinv_xy__y_y0*x_x0 + Minv_xx__x_x0__x_x0[mxxptr]
-                print( 'Using pixel: %i %i with value %f rho2=%f x_x0=%f y_y0=%f' % ( x, y, object_image[x][y], rho2, x_x0, y_y0 ) )
-
-                intensity = exp( -0.5 * rho2 ) * object_image[x][y]
+                #print( 'Using pixel: %i %i with value %f rho2=%f x_x0=%f y_y0=%f' % ( x, y, object_image[y-1][x-1], rho2, x_x0, y_y0 ) )
+                intensity = exp( -0.5 * rho2 ) * object_image[y-1][x-1]
 
                 # Now do the addition
                 intensity__x_x0 = intensity * x_x0
@@ -172,14 +276,14 @@ class HSM:
 
                 x_x0 += 1
 
-        print( 'exiting find_ellipmom_1:')
-        print( ' A    = %f' % A )
-        print( ' Bx   = %f' % Bx )
-        print( ' By   = %f' % By )
-        print( ' Cxx  = %f' % Cxx )
-        print( ' Cxy  = %f' % Cxy )
-        print( ' Cyy  = %f' % Cyy )
-        print( ' rho4 = %f' % rho4 )
+        #print( 'exiting find_ellipmom_1:')
+        #print( ' A    = %f' % A )
+        #print( ' Bx   = %f' % Bx )
+        #print( ' By   = %f' % By )
+        #print( ' Cxx  = %f' % Cxx )
+        #print( ' Cxy  = %f' % Cxy )
+        #print( ' Cyy  = %f' % Cyy )
+        #print( ' rho4 = %f' % rho4 )
 
 
         return( A, Bx, By, Cxx, Cxy, Cyy, rho4 )

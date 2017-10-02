@@ -17,7 +17,7 @@ class HSM:
                   max_amoment=8000.,
                   max_ashift=15.,
                   max_mom2_iter=400):
-                  
+
         self.max_moment_nsig2     = max_moment_nsig2
         self.convergence_treshold = convergence_treshold
         self.guess_sig            = guess_sig
@@ -40,8 +40,36 @@ class HSM:
         return Moments( Amp, x0, y0, Mxx, Mxy, Myy, rho4 )
 
 
+    # find_ellipmom_2
+    # *** COMPUTES ADAPTIVE ELLIPTICAL MOMENTS OF AN IMAGE ***
+    #
+    # Finds the best-fit Gaussian:
+    #
+    # f ~ A / (pi*sqrt det M) * exp( - (r-r0) * M^-1 * (r-r0) )
+    #
+    # The fourth moment rho4 is also returned.
+    # Note that the total image intensity for the Gaussian is 2A.
+    #
+    # Arguments:
+    #   data: ImageView structure containing the image
+    # > A: adaptive amplitude
+    # > x0: adaptive centroid (x)
+    # > y0: adaptive centroid (y)
+    # > Mxx: adaptive covariance (xx)
+    # > Mxy: adaptive covariance (xy)
+    # > Myy: adaptive covariance (yy)
+    # Returns:
+    #   A: adaptive amplitude
+    #   x0: adaptive centroid (x)
+    #   y0: adaptive centroid (y)
+    #   Mxx: adaptive covariance (xx)
+    #   Mxy: adaptive covariance (xy)
+    #   Myy: adaptive covariance (yy)
+    #   rho4: rho4 moment
+    #  convergence_threshold: required accuracy
+
     def find_ellipmom_2( self,
-                         object_image,
+                         data,
                          x0,
                          y0,
                          Mxx,
@@ -62,7 +90,7 @@ class HSM:
 
         while( convergence_factor > self.convergence_treshold ):
             # Get moments
-            Amp, Bx, By, Cxx, Cxy, Cyy, rho4 = self.find_ellipmom_1( object_image,
+            Amp, Bx, By, Cxx, Cxy, Cyy, rho4 = self.find_ellipmom_1( data,
                                                              x0, y0,
                                                              Mxx, Mxy, Myy )
 
@@ -152,6 +180,35 @@ class HSM:
         rho4 /= Amp
         return Amp, x0, y0, Mxx, Mxy, Myy, rho4
 
+
+     # find_ellipmom_1
+    # *** FINDS ELLIPTICAL GAUSSIAN MOMENTS OF AN IMAGE ***
+    #
+    # Returns the parameters:
+    # A = int f(x,y) w(x,y)
+    # B_i = int (r_i-r0_i) f(r) w(r)
+    # C_ij = int (r_i-r0_i) (r_j-r0_j) f(r) w(r)
+    # rho4 = int rho^4 f(r) w(r)
+    #
+    # where w(r) = exp(-rho^2/2), rho^2 = (x-x0) * M^{-1} * (y-y0),
+    # M = adaptive covariance matrix, and note that the weight may be set to zero for rho^2 >
+    # hsmparams->max_moment_nsig2 if that parameter is defined.
+    #
+    # Arguments:
+    #   data: the input image (ImageView format)
+    #   x0: weight centroid (x coordinate)
+    #   y0: weight centroid (y coordinate)
+    #   Mxx: xx element of adaptive covariance
+    #   Mxy: xy element of adaptive covariance
+    #  Myy: yy element of adaptive covariance
+    # Returns:
+    # > A: amplitude
+    # > Bx: weighted centroid displacement (x)
+    # > By: weighted centroid displacement (y)
+    # > Cxx: weighted covariance (xx)
+    # > Cxy: weighted covariance (xy)
+    # > Cyy: weighted covariance (yy)
+    # > rho4w: weighted radial fourth moment
 
     def find_ellipmom_1( self,
                          object_image,

@@ -33,7 +33,7 @@ def generate_stamp( size_x=120, size_y=80,
     assert Y.shape == (size_x, size_y)
     assert Y[0,size_y-1] == size_y-0.5
 
-    stamp = gaussian(100.0, 65.0, 40.0, 5.0, 10.0)(X, Y)
+    stamp = gaussian(height, x, y, width_x, width_y)(X, Y)
     if have_noise:
         stamp += np.random.randn(*X.shape)
 
@@ -45,48 +45,70 @@ def generate_stamp( size_x=120, size_y=80,
 vtgen = pydeimos.vtgenerator.VTGenerator()
 vtgen.add_value( 'x', 'FLOAT', 60., 70., 1. )
 vtgen.add_value( 'y', 'FLOAT', 35., 45., 1. )
+vtgen.add_value( 'height', 'FLOAT', 10, 110, 10. )
+
+outstr = '# '
+for v in vtgen.get_names():
+    outstr += '%s ' % v
+
+for v in ['flux', 'sigma', 'x', 'y', 'm_xx', 'm_xy', 'm_yy', 'rho4', 'e1', 'e2' ]:
+    outstr += 'g_%s p_%s diff_%s ' % ( v, v , v )
+
+print( outstr )
 
 for i in vtgen.product_dict():
     stamp = generate_stamp( **i )
 
-stamp = generate_stamp()
 
-# Save it to Fits
-pydeimos.utils.write_fits(stamp, "stamp.fits")
-
-
-# Create a galsim image out of this stamp
-gs_stamp = galsim.image.Image(stamp.transpose())
+    # Save it to Fits
+    #pydeimos.utils.write_fits(stamp, "stamp.fits")
 
 
-print( 'FindAdaptiveMom')
-res = galsim.hsm.FindAdaptiveMom(gs_stamp)
-
-output_dict = {}
-output_dict["flux"] = res.moments_amp
-output_dict["x"] = res.moments_centroid.x - 0.5 # Compensating for GalSim's default origin
-output_dict["y"] = res.moments_centroid.y - 0.5 # Center of first pixel is at (0.5, 0.5), not (1, 1)
-#output_dict["g1"] = res.observed_shape.g1
-#output_dict["g2"] = res.observed_shape.g2
-output_dict["e1"] = res.observed_shape.e1;
-output_dict["e2"] = res.observed_shape.e2;
-output_dict["sigma"] = res.moments_sigma
-output_dict["rho4"] = res.moments_rho4
-output_dict["m_xx"] = res.moments_m_xx
-output_dict["m_yy"] = res.moments_m_yy
-output_dict["m_xy"] = res.moments_m_xy
-
-print(output_dict)
-
-print( 'Python FindAdaptiveMom')
-hsm = hsm.hsm.HSM()
-res = hsm.FindAdaptiveMom( stamp.transpose() )
-
-output_dict2 = res.moments
-
-print( output_dict2 )
+    # Create a galsim image out of this stamp
+    gs_stamp = galsim.image.Image(stamp.transpose())
 
 
-check_galsim_pyhsm( output_dict, output_dict2 )
+    #print( 'FindAdaptiveMom')
+    res = galsim.hsm.FindAdaptiveMom(gs_stamp)
+
+    output_dict = {}
+    output_dict["flux"] = res.moments_amp
+    output_dict["x"] = res.moments_centroid.x - 0.5 # Compensating for GalSim's default origin
+    output_dict["y"] = res.moments_centroid.y - 0.5 # Center of first pixel is at (0.5, 0.5), not (1, 1)
+    #output_dict["g1"] = res.observed_shape.g1
+    #output_dict["g2"] = res.observed_shape.g2
+    output_dict["e1"] = res.observed_shape.e1;
+    output_dict["e2"] = res.observed_shape.e2;
+    output_dict["sigma"] = res.moments_sigma
+    output_dict["rho4"] = res.moments_rho4
+    output_dict["m_xx"] = res.moments_m_xx
+    output_dict["m_yy"] = res.moments_m_yy
+    output_dict["m_xy"] = res.moments_m_xy
+
+    #print(output_dict)
+
+    #print( 'Python FindAdaptiveMom')
+    hsmproc = hsm.hsm.HSM()
+    res = hsmproc.FindAdaptiveMom( stamp.transpose() )
+
+    output_dict2 = res.moments
+
+    #print( output_dict2 )
+
+
+    # check_galsim_pyhsm( output_dict, output_dict2 )
+
+    # generate output
+    outstr = ''
+    for v in vtgen.get_names():
+        outstr += '%f ' % i[v]
+
+    for v in ['flux', 'sigma', 'x', 'y', 'm_xx', 'm_xy', 'm_yy', 'rho4', 'e1', 'e2' ]:
+        outstr += '%.15f %.15f %.15f ' % ( output_dict[v], output_dict2[v], ( output_dict[v] - output_dict2[v]) )
+
+    print( outstr )
+
+
+
 
 print( 'Done.' )

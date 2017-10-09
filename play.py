@@ -16,6 +16,16 @@ def gaussian(height, center_x, center_y, width_x, width_y):
         -(((float(center_x)-x)/width_x)**2+((float(center_y)-y)/width_y)**2)/2)
 
 
+
+# check galsim/python hsm outputs
+def check_galsim_pyhsm( galsim_dict, pyhsm_dict ):
+    print( 'check galsim/pyhsm (diffs):' )
+    for i in ['flux', 'sigma', 'x', 'y', 'm_xx', 'm_xy', 'm_yy', 'rho4', 'e1', 'e2' ]:
+        print( ' %-10s: %20.15f' % ( i, ( galsim_dict[i] - pyhsm_dict[i] ) ) )
+
+
+# main
+
 # Prepare a coordinate grid
 X, Y = np.mgrid[0:120, 0:80]+0.5 # So that the arrays contain the coordinates of the pixel *centers*: first pixel goes from 0.0 to 1.0
 assert X[0,0] == 0.5
@@ -57,8 +67,11 @@ print( 'Python FindAdaptiveMom')
 hsm = hsm.hsm.HSM()
 res = hsm.FindAdaptiveMom( stamp.transpose() )
 
-output_dict = res.moments
+output_dict2 = res.moments
 
-print( output_dict )
+print( output_dict2 )
+
+
+check_galsim_pyhsm( output_dict, output_dict2 )
 
 print( 'Done.' )

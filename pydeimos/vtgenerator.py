@@ -12,9 +12,6 @@ class VTGenerator_value( object ):
         else:
             self.vals = np.arange( float(min), float(max), step=step )
 
-        print self.vals
-
-
     def __iter__( self ):
         return self.vals.__iter__()
 
@@ -22,16 +19,20 @@ class VTGenerator_value( object ):
 class VTGenerator( object ):
   def __init__( self ):
       self.values = {}
+      self.names  = []
 
   def add_value( self, name, type, min, max, step ):
       vals = VTGenerator_value( type, min, max, step )
       self.values[name] = vals
+      self.names.append( name )
 
+  def get_names( self ):
+      return self.names
 
   def __iter__( self ):
     # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
     # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-    pools = [tuple(self.values[pool]) for pool in self.values]
+    pools = [tuple(self.values[pool]) for pool in self.names]
     result = [[]]
     for pool in pools:
         result = [x+[y] for x in result for y in pool]
@@ -44,14 +45,12 @@ class VTGenerator( object ):
   def product_dict( self ):
     # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
     # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-    pools = [tuple(self.values[pool]) for pool in self.values]
+    pools = [tuple(self.values[pool]) for pool in self.names]
     result = [[]]
-    names = self.values.keys()
     for pool in pools:
         result = [x+[y] for x in result for y in pool]
     for prod in result:
-        yield dict( zip( names,prod ))
-
+        yield dict( zip( self.names,prod ))
 
 
 if __name__ == '__main__' :

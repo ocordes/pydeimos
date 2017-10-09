@@ -1,12 +1,12 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-02
+# changed by: Oliver Cordes 2017-10-09
 
 
 class Moments:
     def __init__( self, Amp, x0, y0, Mxx, Mxy, Myy, rho4 ):
-        self.moments_amp = 2*Amp
+        self.moments_amp = Amp
         self.moments_centroid_x = x0
         self.moments_centroid_y = y0
         self.moments_rho4 = rho4

@@ -1,7 +1,7 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-02
+# changed by: Oliver Cordes 2017-10-09
 
 from moments import Moments
 
@@ -37,7 +37,7 @@ class HSM:
         Amp, x0, y0, Mxx, Mxy, Myy, rho4 = self.find_ellipmom_2( object_image,
                                                                  c_x, c_y,
                                                                  m_xx, m_xy, m_yy )
-        return Moments( Amp, x0, y0, Mxx, Mxy, Myy, rho4 )
+        return Moments( 2.0*Amp, x0, y0, Mxx, Mxy, Myy, rho4 )
 
 
     # find_ellipmom_2

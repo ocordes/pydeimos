@@ -6,8 +6,6 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
-import hsm
-
 
 
 def gaussian(height, center_x, center_y, width_x, width_y):
@@ -88,7 +86,7 @@ for i in vtgen.product_dict():
     #print(output_dict)
 
     #print( 'Python FindAdaptiveMom')
-    hsmproc = hsm.hsm.HSM()
+    hsmproc = pydeimos.hsm.HSM()
     res = hsmproc.FindAdaptiveMom( stamp.transpose() )
 
     output_dict2 = res.moments

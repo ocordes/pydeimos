@@ -3,7 +3,7 @@
 
 """
 
-__all__ = [ "utils", "simplemoments", "vtgenerator",
+__all__ = [ "utils", "simplemoments", "vtgenerator", "sky_image_plot"
             "moments", "hsm",
             "DEIMOS", "DEIMOSCircular", "DEIMOSElliptical" ]
 

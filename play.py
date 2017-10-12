@@ -6,9 +6,6 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
-import hsm
-
-
 
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
@@ -51,10 +48,10 @@ output_dict = {}
 output_dict["flux"] = res.moments_amp
 output_dict["x"] = res.moments_centroid.x - 0.5 # Compensating for GalSim's default origin
 output_dict["y"] = res.moments_centroid.y - 0.5 # Center of first pixel is at (0.5, 0.5), not (1, 1)
-#output_dict["g1"] = res.observed_shape.g1
-#output_dict["g2"] = res.observed_shape.g2
-output_dict["e1"] = res.observed_shape.e1;
-output_dict["e2"] = res.observed_shape.e2;
+output_dict["g1"] = res.observed_shape.g1
+output_dict["g2"] = res.observed_shape.g2
+output_dict["e1"] = res.observed_shape.e1
+output_dict["e2"] = res.observed_shape.e2
 output_dict["sigma"] = res.moments_sigma
 output_dict["rho4"] = res.moments_rho4
 output_dict["m_xx"] = res.moments_m_xx
@@ -64,7 +61,7 @@ output_dict["m_xy"] = res.moments_m_xy
 print(output_dict)
 
 print( 'Python FindAdaptiveMom')
-hsm = hsm.hsm.HSM()
+hsm = pydeimos.hsm.HSM()
 res = hsm.FindAdaptiveMom( stamp.transpose() )
 
 output_dict2 = res.moments

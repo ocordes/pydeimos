@@ -1,9 +1,9 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-09
+# changed by: Oliver Cordes 2017-10-16
 
-from moments import Moments
+from moments import Moments, Point
 
 import numpy  as np
 from math import *
@@ -34,10 +34,10 @@ class HSM:
         m_xx = self.guess_sig * self.guess_sig
         m_yy = m_xx
         m_xy = 0.
-        Amp, x0, y0, Mxx, Mxy, Myy, rho4 = self.find_ellipmom_2( object_image,
+        Amp, x0, y0, Mxx, Mxy, Myy, rho4, num_iter = self.find_ellipmom_2( object_image,
                                                                  c_x, c_y,
                                                                  m_xx, m_xy, m_yy )
-        return Moments( 2.0*Amp, x0, y0, Mxx, Mxy, Myy, rho4 )
+        return Moments( 2.0*Amp, Point( x0, y0 ),  Mxx, Mxy, Myy, rho4, num_iter )
 
 
     # find_ellipmom_2
@@ -178,7 +178,7 @@ class HSM:
 
         # Re-normalize rho4
         rho4 /= Amp
-        return Amp, x0, y0, Mxx, Mxy, Myy, rho4
+        return Amp, x0, y0, Mxx, Mxy, Myy, rho4, num_iter
 
 
      # find_ellipmom_1

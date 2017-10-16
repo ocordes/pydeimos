@@ -1,19 +1,36 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-11
+# changed by: Oliver Cordes 2017-10-16
 
 import numpy as np
 
+class Point( object ):
+    def __init__( self, x, y ):
+        self.x = x
+        self.y = y
+
+    def __repr__( self ):
+        s = '%s.%s(' % ( self.__class__.__module__, self.__class__.__name__ )
+        s += '%f,%f)' % ( self.x, self.y )
+        return s
+
 class Moments:
-    def __init__( self, Amp, x0, y0, Mxx, Mxy, Myy, rho4 ):
-        self.moments_amp = Amp
-        self.moments_centroid_x = x0
-        self.moments_centroid_y = y0
-        self.moments_rho4 = rho4
-        self.moments_m_xx = Mxx
-        self.moments_m_xy = Mxy
-        self.moments_m_yy = Myy
+    def __init__( self,
+                moments_amp = .0,
+                moments_centroid = Point(0., 0. ),
+                moments_m_xx = 0.,
+                moments_m_xy = 0.,
+                moments_m_yy = 0.,
+                moments_rho4 = 0.,
+                moments_n_iter = 0):
+        self.moments_amp      = moments_amp
+        self.moments_centroid = moments_centroid
+        self.moments_rho4     = moments_rho4
+        self.moments_m_xx     = moments_m_xx
+        self.moments_m_xy     = moments_m_xy
+        self.moments_m_yy     = moments_m_yy
+        self.moments_n_iter   = moments_n_iter
 
         self.shear = Shear( e1=self.e1, e2=self.e2 )
 
@@ -26,7 +43,7 @@ class Moments:
         return 2.*self.moments_m_xy / (self.moments_m_xx+self.moments_m_yy)
 
     @property
-    def sigma( self ):
+    def moments_sigma( self ):
         return pow((self.moments_m_xx*self.moments_m_yy-self.moments_m_xy*self.moments_m_xy), 0.25 )
 
     @property
@@ -37,11 +54,11 @@ class Moments:
     def moments( self ):
         output_dict = {}
         output_dict['flux'] = self.moments_amp
-        output_dict['x'] = self.moments_centroid_x - 0.5 # Compensating for GalSim's default origin
-        output_dict['y'] = self.moments_centroid_y - 0.5 # Center of first pixel is at (0.5, 0.5), not (1, 1)
+        output_dict['x'] = self.moments_centroid.x - 0.5 # Compensating for GalSim's default origin
+        output_dict['y'] = self.moments_centroid.y - 0.5 # Center of first pixel is at (0.5, 0.5), not (1, 1)
         output_dict['e1'] = self.e1
         output_dict['e2'] = self.e2
-        output_dict['sigma'] = self.sigma
+        output_dict['sigma'] = self.moments_sigma
         output_dict['rho4'] = self.moments_rho4
         output_dict['m_xx'] = self.moments_m_xx
         output_dict['m_yy'] = self.moments_m_yy
@@ -49,8 +66,21 @@ class Moments:
 
         output_dict['g1'] = self.observed_shape.g1
         output_dict['g2'] = self.observed_shape.g2
+        output_dict['n_iter'] = self.moments_n_iter
 
         return output_dict
+
+    def __repr__( self ):
+        s = '%s.%s(' % ( self.__class__.__module__, self.__class__.__name__ )
+
+        s += 'moments_amp=%f' % self.moments_amp
+        s += ', moments_centroid=%s' % self.moments_centroid
+        s += ', moments_m_xx=%f' % self.moments_m_xx
+        s += ', moments_m_xy=%f' % self.moments_m_xy
+        s += ', moments_m_yy=%f' % self.moments_m_yy
+        s += ', moments_rho4=%f' % self.moments_rho4
+        s += ', moments_n_iter=%i' % self.moments_n_iter
+        return s+')'
 
 
 class Shear( object ):

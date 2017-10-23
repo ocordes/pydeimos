@@ -13,7 +13,7 @@ obs_image = galsim.fits.read("run_obs_image.fits")
 
 
 # And we visualize the grid and the measurements:
-sf = sip.SimpleFigure(obs_image.array, z1=-3.0, z2=10.0, scale=2) # There is no "tranpose" here, as we've defined the stamps with our own convention, and consistently drawn and measured them with galsim.
+sf = sip.SimpleFigure(obs_image.array.transpose(), z1=-3.0, z2=10.0, scale=2) # There is a "tranpose" here, as GalSim uses (y, x) instead of (x, y)
 
 # The true PSF shape, in blue:
 sf.draw_g_ellipses(catalog, x="tru_gal_x", y="tru_gal_y", g1="tru_psf_g1", g2="tru_psf_g2", sigma="tru_psf_sigma", edgecolor="blue", linewidth=1.0)

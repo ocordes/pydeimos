@@ -62,12 +62,15 @@ for row in catalog:
     row["hsm_gal_sigma"] = res.moments_sigma
     row["hsm_gal_rho4"] = res.moments_rho4
 
-    sys.exit( 0 )
-
+    
     # Let's run a KSB shear estimator on this:
     res = galsim.hsm.EstimateShear(obs_stamp, psf_stamp, shear_est="KSB")
     row["hsm_ksb_g1"] = res.corrected_g1
     row["hsm_ksb_g2"] = res.corrected_g2
+
+    res = hsm.EstimateShear( obs_stamp.array, psf_stamp.array, shear_est="KSB")
+
+    sys.exit( 0 )
 
 
 # And save the catalog:

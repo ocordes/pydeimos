@@ -1,9 +1,9 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-16
+# changed by: Oliver Cordes 2017-10-23
 
-from moments import Moments, Point
+from moments import Moments, Point, ObjectData
 
 import numpy  as np
 from math import *
@@ -16,7 +16,8 @@ class HSM:
                   bound_correct_wt=0.25,
                   max_amoment=8000.,
                   max_ashift=15.,
-                  max_mom2_iter=400):
+                  max_mom2_iter=400,
+                  num_iter_default=-1):
 
         self.max_moment_nsig2     = max_moment_nsig2
         self.convergence_treshold = convergence_treshold
@@ -25,6 +26,7 @@ class HSM:
         self.max_amoment          = max_amoment
         self.max_ashift           = max_ashift
         self.max_mom2_iter        = max_mom2_iter
+        self.num_iter_default     = num_iter_default
 
 
     def FindAdaptiveMom( self, object_image ):
@@ -38,6 +40,36 @@ class HSM:
                                                                  c_x, c_y,
                                                                  m_xx, m_xy, m_yy )
         return Moments( 2.0*Amp, Point( x0, y0 ),  Mxx, Mxy, Myy, rho4, num_iter )
+
+
+
+    def EstimateShear( self, object_image, psf_image,
+                        sky_var = 0.0,
+                        shear_est = 'REGAUSS',
+                        recompute_flux = 'FIT',
+                        guess_sig_gal=5.0,
+                        guess_sig_PSF=3.0,
+                        precision=1.0e-6
+                        ):
+
+        gal_moments = self.FindAdaptiveMom( object_image )
+
+        gal_data = ObjectData()
+        gal_data.x0    = gal_moments.moments_centroid.x
+        gal_data.y0    = gal_moments.moments_centroid.y
+        gal_data.sigma = gal_moments.moments_sigma
+
+
+        psf_data = ObjectData()
+        psf_data.x0 = ( psf_image.shape[1] / 2. ) + 0.5
+        psf_data.y0 = ( psf_image.shape[0] / 2. ) + 0.5
+        psf_data.sigma = guess_sig_PSF
+
+        self.general_shear_estimator( object_image, psf_image,
+            gal_data, psf_data, shear_est )
+
+
+        return gal_moments
 
 
     # find_ellipmom_2
@@ -344,3 +376,51 @@ class HSM:
 
 
         return( A, Bx, By, Cxx, Cxy, Cyy, rho4 )
+
+    # general_shear_estimator
+    # *** WRAPPER FOR SHEAR ESTIMATION ROUTINES ***
+    #
+    # Arguments:
+    # gal_image: measured image of galaxy
+    #   PSF: estimated PSF map
+    #   gal_data: galaxy data
+    #   PSF_data: PSF data
+    #   shear_est: which shear estimator to use
+    #   flags: any flags for the shear estimator
+    #
+    # Returns: status from shear measurement:
+    #   0      = completely successful
+    #   0x8000 = couldn't figure out which estimator you wanted to use
+    #
+    # For BJ and LINEAR methods, returns 1 if measurement fails.
+    #
+    def general_shear_estimator( self,
+                                  gal_image,
+                                  psf_image,
+                                  gal_data,
+                                  psf_data,
+                                  shear_est ):
+
+        if ( shear_est == 'BJ' ) or ( shear_est == 'LINEAR' ) or ( shear_est == 'KSB' ) :
+            # measure the PSF so its size and shape
+            x0 = psf_data.x0
+            y0 = psf_data.y0
+
+            Mxx_psf = psf_data.sigma * psf_data.sigma
+            Myy_psf = Mxx_psf
+            Mxy_psf = 0.
+
+            Amp, x0, y0, Mxx_psf, Mxy_psf, Myy_psf, rho4, num_iter = self.find_ellipmom_2( psf_image,
+                                                                     x0, y0,
+                                                                     Mxx_psf,
+                                                                     Mxy_psf,
+                                                                     Myy_psf )
+            if ( num_iter == self.num_iter_default ):
+                return 1
+
+            psf_data.x0 = x0
+            psf_data.y0 = y0
+            psf_data.sigma = pow( Mxx_psf * Myy_psf - Mxy_psf * Mxy_psf, 0.25 )
+            T_psf = Mxx_psf+Myy_psf
+            psf_data.e1 = (Mxx_psf-Myy_psf)/T_psf
+            psf_data.e2 = 2. * Mxy_psf / T_psf

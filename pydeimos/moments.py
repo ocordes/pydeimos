@@ -1,9 +1,18 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-16
+# changed by: Oliver Cordes 2017-10-23
 
 import numpy as np
+
+class ObjectData( object ):
+    def __init__( self ):
+        self.x0    = .0
+        self.y0    = .0
+        self.sigma = .0
+        self.e1    = .0
+        self.e2    = .0
+
 
 class Point( object ):
     def __init__( self, x, y ):

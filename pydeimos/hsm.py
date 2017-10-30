@@ -1,7 +1,7 @@
 # moments.py
 #
 # written by: Oliver Cordes 2017-09-26
-# changed by: Oliver Cordes 2017-10-23
+# changed by: Oliver Cordes 2017-10-26
 
 from moments import Moments, Point, ObjectData
 
@@ -17,7 +17,8 @@ class HSM:
                   max_amoment=8000.,
                   max_ashift=15.,
                   max_mom2_iter=400,
-                  num_iter_default=-1):
+                  num_iter_default=-1,
+                  failed_moments=-1000):
 
         self.max_moment_nsig2     = max_moment_nsig2
         self.convergence_treshold = convergence_treshold
@@ -27,6 +28,7 @@ class HSM:
         self.max_ashift           = max_ashift
         self.max_mom2_iter        = max_mom2_iter
         self.num_iter_default     = num_iter_default
+        self.failed_moments       = failed_moments
 
 
     def FindAdaptiveMom( self, object_image ):
@@ -65,8 +67,10 @@ class HSM:
         psf_data.y0 = ( psf_image.shape[0] / 2. ) + 0.5
         psf_data.sigma = guess_sig_PSF
 
-        self.general_shear_estimator( object_image, psf_image,
+        res = self.general_shear_estimator( object_image, psf_image,
             gal_data, psf_data, shear_est )
+
+        print( 'general_shear_estimator: %i' % res )
 
 
         return gal_moments
@@ -424,3 +428,26 @@ class HSM:
             T_psf = Mxx_psf+Myy_psf
             psf_data.e1 = (Mxx_psf-Myy_psf)/T_psf
             psf_data.e2 = 2. * Mxy_psf / T_psf
+
+            if ( shear_est == 'BJ' ) or ( shear_est == 'LINEAR' ):
+                status = -1
+            elif ( shear_est == 'KSB' ):
+                status = self.psf_corr_ksb_1( gal_image, psf_image )
+            #                                    gal_data.e1, gal_data.e2, R,
+            #                                    flags,
+            #                                    gal_data.x0, gal_data.y0, gal_data.sigma,
+            #                                    psf_data.x0, psf_data.y0, psf_data.sigma,
+            #                                    psf_data.e1, psf_data.e2,
+            #    gal_data.flux)
+            elif ( shear_est == 'REGAUSS' ):
+                status = -1
+            else:
+                return -1
+
+
+            return status
+
+
+        def psf_korr_ksb_1( self, gal_image, psf_image ):
+
+            e1 = e1 = R = self.failed_moments
